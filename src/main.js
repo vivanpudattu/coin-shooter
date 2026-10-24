@@ -1,0 +1,79 @@
+// Wiring: creates the shared bus, the mode and the UI, and runs the frame loop.
+(() => {
+  const el = id => document.getElementById(id);
+  const show = (id, on) => el(id).classList.toggle('hidden', !on);
+
+  const canvas = el('game');
+  const bus = new CS.EventBus();
+  const input = new CS.Input(canvas);
+  const mode = new CS.WaveMode({ bus, input });
+  const renderer = new CS.Renderer(canvas);
+  const shopUI = new CS.ShopUI(el('shop'), mode.shop, bus);
+  let paused = false;
+
+  function newGame() {
+    CS.Sfx.init();
+    show('title', false);
+    show('gameover', false);
+    mode.reset();
+    mode.startWave();
+  }
+
+  function setPaused(on) {
+    paused = on && mode.phase === 'wave';
+    show('pause', paused);
+  }
+
+  el('btn-start').onclick = newGame;
+  el('btn-restart').onclick = newGame;
+  el('btn-resume').onclick = () => setPaused(false);
+  window.addEventListener('blur', () => setPaused(true));
+
+  bus.on('wave:cleared', e => {
+    setTimeout(() => {
+      if (mode.phase !== 'intermission') return;
+      shopUI.open({
+        buyer: mode.player,
+        wallet: mode.wallet(mode.player),
+        title: `Wave ${e.wave} cleared`,
+        doneLabel: `Start wave ${e.wave + 1}`,
+        onDone: () => mode.startWave(),
+      });
+    }, 1100);
+  });
+
+  bus.on('game:over', s => {
+    el('go-stats').innerHTML = `
+      <div><b>${s.wave}</b><span>wave reached</span></div>
+      <div><b>${s.kills}</b><span>kills</span></div>
+      <div><b>${s.headshots}</b><span>headshot kills</span></div>
+      <div><b>${s.bestStreak}</b><span>best streak</span></div>
+      <div><b>${s.coinsEarned}</b><span>coins earned</span></div>`;
+    show('gameover', true);
+  });
+
+  // Sound.
+  const isPlayer = f => f === mode.player;
+  bus.on('shot', e => CS.Sfx.shot(e.weaponId, isPlayer(e.fighter)));
+  bus.on('damage', e => {
+    if (isPlayer(e.attacker)) e.zone === 'head' && e.source === 'gun' ? CS.Sfx.headshot() : CS.Sfx.hit();
+    else if (isPlayer(e.target)) CS.Sfx.hurt();
+  });
+  bus.on('melee', e => { if (isPlayer(e.fighter)) CS.Sfx.swing(); });
+  bus.on('explosion', () => CS.Sfx.explosion());
+  bus.on('coin:collect', () => CS.Sfx.coin());
+  bus.on('shop:purchase', () => CS.Sfx.buy());
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(1 / 30, (now - last) / 1000);
+    last = now;
+    if (input.wasPressed('Escape') || input.wasPressed('KeyP')) setPaused(!paused);
+    if (input.wasPressed('KeyM')) CS.Sfx.toggleMute();
+    if (!paused) mode.update(dt);
+    renderer.draw(mode, input, paused);
+    input.endFrame();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
