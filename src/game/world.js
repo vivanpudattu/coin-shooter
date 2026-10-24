@@ -228,6 +228,9 @@ CS.World = class World {
       x: info.x, y: info.y - 12, vy: -70, life: 0.8, max: 0.8,
       text: head ? `${amount}!` : `${amount}`, color: head ? '#ffd23f' : '#ffffff', size: head ? 20 : 15,
     });
+    if (head) {
+      this.floaters.push({ x: target.x, y: target.y - 88, vy: -45, life: 1.0, max: 1.0, text: 'HEADSHOT', color: '#ffd23f', size: 22 });
+    }
     this.burst(info.x, info.y, head ? 12 : 6, '#c0392b', head ? 260 : 180, 0.4, true, 3);
     this.bus.emit('damage', { target, attacker, amount, ...info });
 

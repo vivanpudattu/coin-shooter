@@ -11,12 +11,37 @@
   const shopUI = new CS.ShopUI(el('shop'), mode.shop, bus);
   let paused = false;
 
-  function newGame() {
+  // run: a saved checkpoint to continue, or null for a fresh game from wave 1.
+  // Coins you already have can be spent in the shop before the first wave.
+  function startGame(run) {
     CS.Sfx.init();
     show('title', false);
     show('gameover', false);
-    mode.reset();
-    mode.startWave();
+    if (!run) CS.Save.clearRun();
+    mode.reset({ coins: CS.Save.loadCoins(), wave: run ? run.wave - 1 : 0, player: run?.player });
+    const wallet = mode.wallet(mode.player), next = mode.wave + 1;
+    if (wallet.balance > 0) {
+      shopUI.open({
+        buyer: mode.player, wallet,
+        title: run ? `Back to wave ${next}` : 'Get ready',
+        doneLabel: `Start wave ${next}`,
+        onDone: () => mode.startWave(),
+      });
+    } else {
+      mode.startWave();
+    }
+  }
+
+  function showMenu() {
+    const coins = CS.Save.loadCoins(), run = CS.Save.loadRun();
+    el('saved-coins').textContent = `Saved coins: ${coins}`;
+    el('saved-coins').classList.toggle('hidden', coins === 0);
+    el('btn-continue').classList.toggle('hidden', !run);
+    if (run) el('continue-label').textContent = `Continue: Wave ${run.wave}`;
+    el('btn-bots').classList.toggle('primary', !run);
+    el('btn-bots').querySelector('.mode-desc').textContent = run ? 'New game from wave 1' : 'Survive waves of bots';
+    show('gameover', false);
+    show('title', true);
   }
 
   function setPaused(on) {
@@ -24,8 +49,19 @@
     show('pause', paused);
   }
 
-  el('btn-start').onclick = newGame;
-  el('btn-restart').onclick = newGame;
+  el('btn-continue').onclick = () => startGame(CS.Save.loadRun());
+  el('btn-bots').onclick = () => startGame(null);
+  el('btn-restart').onclick = () => startGame(null);
+  el('btn-menu').onclick = showMenu;
+  showMenu();
+
+  // Saving: coins on every change; a run checkpoint at the start and end of each wave
+  // and after every shop purchase (the shop only opens before the next wave).
+  bus.on('wallet:change', e => { if (e.ownerId === mode.player.id) CS.Save.saveCoins(e.balance); });
+  bus.on('wave:start', e => CS.Save.saveRun(e.wave, mode.player.snapshot()));
+  bus.on('wave:cleared', e => CS.Save.saveRun(e.wave + 1, mode.player.snapshot()));
+  bus.on('shop:purchase', () => CS.Save.saveRun(mode.wave + 1, mode.player.snapshot()));
+  bus.on('game:over', () => CS.Save.clearRun());
   el('btn-resume').onclick = () => setPaused(false);
   window.addEventListener('blur', () => setPaused(true));
 
@@ -49,6 +85,7 @@
       <div><b>${s.headshots}</b><span>headshot kills</span></div>
       <div><b>${s.bestStreak}</b><span>best streak</span></div>
       <div><b>${s.coinsEarned}</b><span>coins earned</span></div>`;
+    el('go-saved').textContent = `You keep your ${mode.wallet(mode.player).balance} coins.`;
     show('gameover', true);
   });
 

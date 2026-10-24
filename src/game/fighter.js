@@ -63,4 +63,30 @@ CS.Fighter = class Fighter {
   }
 
   heal(amount) { this.health = Math.min(this.maxHealth, this.health + amount); }
+
+  // Plain-data copy of what this fighter has bought, for saving a run (or sending over a network).
+  snapshot() {
+    const a = this.arsenal;
+    return {
+      health: this.health,
+      maxHealth: this.maxHealth,
+      upgrades: { ...this.upgrades },
+      guns: a.guns.map(g => g.id),
+      melee: a.melee.id,
+      grenades: a.grenades,
+      mods: { ...a.mods },
+    };
+  }
+
+  restore(s) {
+    const a = this.arsenal;
+    this.maxHealth = Math.min(CS.HEALTH_CAP, s.maxHealth || this.maxHealth);
+    this.health = Math.max(1, Math.min(s.health || this.maxHealth, this.maxHealth));
+    Object.assign(this.upgrades, s.upgrades);
+    Object.assign(a.mods, s.mods);
+    for (const id of s.guns || []) if (CS.WEAPONS[id]) a.addGun(id);
+    if (CS.MELEE[s.melee]) a.setMelee(s.melee);
+    a.grenades = Math.min(a.maxGrenades, s.grenades ?? a.grenades);
+    a.refillAll();
+  }
 };

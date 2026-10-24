@@ -27,8 +27,22 @@
           <div><b>Esc</b> pause</div>
           <div><b>M</b> mute</div>
         </div>
-        <p class="tip">Headshots do double damage. Melee kills pay double coins. Spend coins in the shop between waves.</p>
-        <button id="btn-start" class="primary">Start</button>
+        <p class="tip">Headshots do double damage. Melee kills pay double coins. Your coins are saved when you die.</p>
+        <p id="saved-coins" class="saved hidden"></p>
+        <div class="mode-select">
+          <button id="btn-continue" class="mode primary hidden">
+            <span class="mode-name" id="continue-label">Continue</span>
+            <span class="mode-desc">Pick up where you left off</span>
+          </button>
+          <button id="btn-bots" class="mode primary">
+            <span class="mode-name">Bots</span>
+            <span class="mode-desc">Survive waves of bots</span>
+          </button>
+          <button id="btn-multiplayer" class="mode" disabled>
+            <span class="mode-name">Multiplayer</span>
+            <span class="mode-desc">Coming soon</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -45,7 +59,11 @@
       <div class="panel">
         <h2>You died</h2>
         <div id="go-stats" class="stats"></div>
-        <button id="btn-restart" class="primary">Play again</button>
+        <p id="go-saved" class="saved"></p>
+        <div class="mode-select">
+          <button id="btn-restart" class="primary">Play again</button>
+          <button id="btn-menu">Main menu</button>
+        </div>
       </div>
     </div>
   </div>
@@ -65,6 +83,7 @@
   <script src="src/modes/waveMode.js"></script>
   <!-- Presentation -->
   <script src="src/ui/input.js"></script>
+  <script src="src/ui/save.js"></script>
   <script src="src/ui/sfx.js"></script>
   <script src="src/ui/renderer.js"></script>
   <script src="src/ui/shopUI.js"></script>

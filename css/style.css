@@ -89,6 +89,20 @@ button.primary {
 button.primary:hover { filter: brightness(1.08); }
 button:disabled { cursor: not-allowed; }
 
+.mode-select { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+button.mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 210px;
+  padding: 14px 22px;
+}
+.mode-name { font-size: 20px; font-weight: 700; }
+.mode-desc { font-size: 13px; font-weight: 400; opacity: 0.75; }
+button.mode:disabled { opacity: 0.5; }
+.saved { color: var(--gold); font-weight: 700; margin: 0 0 18px; }
+
 .stats { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; margin: 18px 0 24px; }
 .stats div { display: flex; flex-direction: column; }
 .stats b { font-size: 28px; color: var(--gold); }

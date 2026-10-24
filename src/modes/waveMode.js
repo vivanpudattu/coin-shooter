@@ -22,15 +22,18 @@ CS.WaveMode = class WaveMode {
     this.phase = 'title';
   }
 
-  reset() {
+  // coins: balance carried over from earlier games (kept when you die).
+  // wave / player: a saved checkpoint to resume from; the next startWave() plays wave + 1.
+  reset({ coins = 0, wave = 0, player = null } = {}) {
     this.unsubs.forEach(u => u());
     this.world = new CS.World(this.bus, CS.MAPS.arena);
     this.player = this.world.addFighter(new CS.Fighter({
       id: 'p1', name: 'You', team: 'players', x: 640, y: 660, color: '#4da3ff',
       collectsCoins: true, controller: new CS.HumanController(this.input),
     }));
-    this.wallets = { p1: new CS.Wallet('p1', this.bus, 0) };
-    this.wave = 0;
+    this.wallets = { p1: new CS.Wallet('p1', this.bus, coins) };
+    if (player) this.player.restore(player);
+    this.wave = wave;
     this.phase = 'ready';
     this.queue = [];
     this.spawnTimer = 0;
