@@ -1,8 +1,23 @@
-// Progress kept in this browser between games: coins (kept forever, even after
-// dying) and the current run's checkpoint (cleared when you die).
+// Progress kept in this browser between games: coins and bought gear (kept
+// forever, even after dying) and the current run's checkpoint (cleared when you die).
 CS.Save = {
   COINS_KEY: 'coinShooter.coins',
+  GEAR_KEY: 'coinShooter.gear',
   RUN_KEY: 'coinShooter.run',
+
+  // Fighter.snapshot() of everything bought, or null.
+  loadGear() {
+    try {
+      const gear = JSON.parse(localStorage.getItem(this.GEAR_KEY));
+      return gear && Array.isArray(gear.guns) ? gear : null;
+    } catch {
+      return null;
+    }
+  },
+
+  saveGear(snapshot) {
+    try { localStorage.setItem(this.GEAR_KEY, JSON.stringify(snapshot)); } catch {}
+  },
 
   loadCoins() {
     try {

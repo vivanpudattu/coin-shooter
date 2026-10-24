@@ -17,8 +17,13 @@
     CS.Sfx.init();
     show('title', false);
     show('gameover', false);
+    // A new game keeps all bought gear but starts at full health with at least the starter grenades.
+    // Saves from before gear was stored separately only have it in the run checkpoint.
+    const gear = CS.Save.loadGear() || CS.Save.loadRun()?.player;
     if (!run) CS.Save.clearRun();
-    mode.reset({ coins: CS.Save.loadCoins(), wave: run ? run.wave - 1 : 0, player: run?.player });
+    const player = run ? run.player
+      : gear ? { ...gear, health: gear.maxHealth, grenades: Math.max(3, gear.grenades) } : null;
+    mode.reset({ coins: CS.Save.loadCoins(), wave: run ? run.wave - 1 : 0, player });
     const wallet = mode.wallet(mode.player), next = mode.wave + 1;
     if (wallet.balance > 0) {
       shopUI.open({
@@ -55,12 +60,17 @@
   el('btn-menu').onclick = showMenu;
   showMenu();
 
-  // Saving: coins on every change; a run checkpoint at the start and end of each wave
-  // and after every shop purchase (the shop only opens before the next wave).
+  // Saving: coins on every change; gear and a run checkpoint at the start and end of
+  // each wave and after every shop purchase (the shop only opens before the next wave).
+  function saveProgress(nextWave) {
+    const snapshot = mode.player.snapshot();
+    CS.Save.saveGear(snapshot);
+    CS.Save.saveRun(nextWave, snapshot);
+  }
   bus.on('wallet:change', e => { if (e.ownerId === mode.player.id) CS.Save.saveCoins(e.balance); });
-  bus.on('wave:start', e => CS.Save.saveRun(e.wave, mode.player.snapshot()));
-  bus.on('wave:cleared', e => CS.Save.saveRun(e.wave + 1, mode.player.snapshot()));
-  bus.on('shop:purchase', () => CS.Save.saveRun(mode.wave + 1, mode.player.snapshot()));
+  bus.on('wave:start', e => saveProgress(e.wave));
+  bus.on('wave:cleared', e => saveProgress(e.wave + 1));
+  bus.on('shop:purchase', () => saveProgress(mode.wave + 1));
   bus.on('game:over', () => CS.Save.clearRun());
   el('btn-resume').onclick = () => setPaused(false);
   window.addEventListener('blur', () => setPaused(true));
@@ -85,7 +95,7 @@
       <div><b>${s.headshots}</b><span>headshot kills</span></div>
       <div><b>${s.bestStreak}</b><span>best streak</span></div>
       <div><b>${s.coinsEarned}</b><span>coins earned</span></div>`;
-    el('go-saved').textContent = `You keep your ${mode.wallet(mode.player).balance} coins.`;
+    el('go-saved').textContent = `You keep your ${mode.wallet(mode.player).balance} coins and everything you bought.`;
     show('gameover', true);
   });
 
